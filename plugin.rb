@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # name: discourse-topic-viewers
-# about: Show list of users who viewed a topic when clicking the Views count
-# version: 0.1
+# about: Show list of users who viewed a topic when clicking the Viewers button
+# version: 0.2
 # authors: Pushpender Singh
 # url: https://example.com/discourse-topic-viewers
 
@@ -20,6 +20,9 @@ after_initialize do
     isolate_namespace DiscourseTopicViewers
   end
 
+  #
+  # ROUTES
+  #
   Discourse::Application.routes.append do
     mount ::DiscourseTopicViewers::Engine, at: "/"
   end
@@ -28,6 +31,9 @@ after_initialize do
     get "/topic-viewers/:topic_id" => "topic_viewers#index", defaults: { format: :json }
   end
 
+  #
+  # CONTROLLER
+  #
   module ::DiscourseTopicViewers
     class TopicViewersController < ::ApplicationController
       requires_plugin DiscourseTopicViewers::PLUGIN_NAME
@@ -36,31 +42,35 @@ after_initialize do
 
       def index
         topic_id = params[:topic_id].to_i
-        guardian.ensure_can_see!(Topic.find(topic_id))
+        topic = Topic.find_by(id: topic_id)
 
-        # Use TopicView records, one per user per topic
-        views = TopicView
+        guardian.ensure_can_see!(topic)
+
+        # Use TopicUser instead of TopicView (modern Discourse)
+        users = TopicUser
           .where(topic_id: topic_id)
           .joins(:user)
           .select(
-            "users.id, users.username, users.name, users.avatar_template, topic_views.viewed_at"
+            "users.id,
+             users.username,
+             users.name,
+             users.avatar_template,
+             topic_users.last_visited_at AS viewed_at"
           )
-          .order("topic_views.viewed_at DESC")
+          .order("topic_users.last_visited_at DESC NULLS LAST")
           .limit(500)
-
-        users = views.map do |v|
-          {
-            id: v.id,
-            username: v.username,
-            name: v.name,
-            avatar_url: User.avatar_template(v.avatar_template, 45),
-            viewed_at: v.viewed_at
-          }
-        end
+          .map do |v|
+            {
+              id: v.id,
+              username: v.username,
+              name: v.name,
+              avatar_url: User.avatar_template(v.avatar_template, 45),
+              viewed_at: v.viewed_at
+            }
+          end
 
         render_json_dump(users: users)
       end
     end
   end
 end
-
