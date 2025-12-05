@@ -44,28 +44,24 @@ after_initialize do
         topic_id = params[:topic_id].to_i
         topic = Topic.find_by(id: topic_id)
 
+        raise Discourse::NotFound unless topic
         guardian.ensure_can_see!(topic)
 
         # Use TopicUser instead of TopicView (modern Discourse)
         users = TopicUser
           .where(topic_id: topic_id)
           .joins(:user)
-          .select(
-            "users.id,
-             users.username,
-             users.name,
-             users.avatar_template,
-             topic_users.last_visited_at AS viewed_at"
-          )
+          .includes(:user)
           .order("topic_users.last_visited_at DESC NULLS LAST")
           .limit(500)
-          .map do |v|
+          .map do |topic_user|
+            user = topic_user.user
             {
-              id: v.id,
-              username: v.username,
-              name: v.name,
-              avatar_url: User.avatar_template(v.avatar_template, 45),
-              viewed_at: v.viewed_at
+              id: user.id,
+              username: user.username,
+              name: user.name,
+              avatar_url: user.avatar_template_url.gsub("{size}", "45"),
+              viewed_at: topic_user.last_visited_at
             }
           end
 
