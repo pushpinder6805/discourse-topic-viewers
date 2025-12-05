@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 # name: discourse-topic-viewers
-# about: Show list of users who viewed a topic when clicking the Viewers button
-# version: 0.2
+# about: Show list of users who viewed a specific post
+# version: 0.3
 # authors: Pushpender Singh
-# url: https://example.com/discourse-topic-viewers
 
 enabled_site_setting :topic_viewers_enabled
 
@@ -20,9 +19,6 @@ after_initialize do
     isolate_namespace DiscourseTopicViewers
   end
 
-  #
-  # ROUTES
-  #
   Discourse::Application.routes.append do
     mount ::DiscourseTopicViewers::Engine, at: "/"
   end
@@ -31,40 +27,41 @@ after_initialize do
     get "/topic-viewers/:topic_id" => "topic_viewers#index", defaults: { format: :json }
   end
 
-  #
-  # CONTROLLER
-  #
   module ::DiscourseTopicViewers
     class TopicViewersController < ::ApplicationController
       requires_plugin DiscourseTopicViewers::PLUGIN_NAME
-
       before_action :ensure_logged_in
 
       def index
         topic_id = params[:topic_id].to_i
+        post_number = params[:post_number].to_i
+        
         topic = Topic.find_by(id: topic_id)
-
         raise Discourse::NotFound unless topic
         guardian.ensure_can_see!(topic)
 
-        # Use TopicUser instead of TopicView (modern Discourse)
-        users = TopicUser
+        # Basic query: Users who visited this topic
+        query = TopicUser
           .where(topic_id: topic_id)
           .joins(:user)
           .includes(:user)
           .order("topic_users.last_visited_at DESC NULLS LAST")
-          .limit(500)
-          .map do |topic_user|
-            user = topic_user.user
-            avatar_url = User.avatar_template_url(user.avatar_template, 45)
-            {
-              id: user.id,
-              username: user.username,
-              name: user.name,
-              avatar_url: avatar_url,
-              viewed_at: topic_user.last_visited_at
-            }
-          end
+
+        # FILTER: Only show users who have read AT LEAST up to this post
+        if post_number > 0
+          query = query.where("topic_users.last_read_post_number >= ?", post_number)
+        end
+
+        users = query.limit(500).map do |topic_user|
+          user = topic_user.user
+          {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            avatar_url: User.avatar_template_url(user.avatar_template, 45),
+            viewed_at: topic_user.last_visited_at
+          }
+        end
 
         render_json_dump(users: users)
       end
