@@ -1,3 +1,5 @@
-<button class="topic-viewers-btn" type="button">
-  Viewers
-</button>
+{{#if @outletArgs.model}}
+  <button class="topic-viewers-btn" type="button" data-topic-id={{@outletArgs.model.id}}>
+    Viewers
+  </button>
+{{/if}}
