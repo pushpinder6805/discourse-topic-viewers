@@ -56,11 +56,12 @@ after_initialize do
           .limit(500)
           .map do |topic_user|
             user = topic_user.user
+            avatar_url = User.avatar_template_url(user.avatar_template, 45)
             {
               id: user.id,
               username: user.username,
               name: user.name,
-              avatar_url: user.avatar_template_url.gsub("{size}", "45"),
+              avatar_url: avatar_url,
               viewed_at: topic_user.last_visited_at
             }
           end

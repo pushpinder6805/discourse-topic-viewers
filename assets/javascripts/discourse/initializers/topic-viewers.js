@@ -1,56 +1,56 @@
-import { withPluginApi } from "discourse/lib/plugin-api";
+import { apiInitializer } from "discourse/lib/api";
 
-export default {
-  name: "topic-viewers",
+export default apiInitializer("0.11.0", (api) => {
+  let currentTopicId = null;
 
-  initialize() {
-    withPluginApi("0.8.31", (api) => {
-      let currentTopicId = null;
+  // Track topic changes using onPageChange
+  api.onPageChange((url, title) => {
+    // Extract topic ID from URL pattern /t/slug/id
+    const match = url.match(/\/t\/[^\/]+\/(\d+)/);
+    currentTopicId = match ? parseInt(match[1], 10) : null;
+  });
 
-      // Track topic changes using onPageChange
-      api.onPageChange((url, title) => {
-        // Extract topic ID from URL pattern /t/slug/id
-        const match = url.match(/\/t\/[^\/]+\/(\d+)/);
-        currentTopicId = match ? parseInt(match[1], 10) : null;
-      });
+  // Register global click handler
+  if (!window.__topicViewersClickRegistered) {
+    window.__topicViewersClickRegistered = true;
 
-      // Register global click handler
-      if (!window.__topicViewersClickRegistered) {
-        window.__topicViewersClickRegistered = true;
-
-        document.addEventListener("click", (event) => {
-          const btn = event.target.closest(".topic-viewers-btn");
-          if (!btn) {
-            return;
-          }
-
-          // Get topic ID from data attribute or tracked value
-          const topicId = btn.dataset.topicId
-            ? parseInt(btn.dataset.topicId, 10)
-            : currentTopicId;
-
-          if (!topicId) {
-            console.warn("No topic ID available");
-            return;
-          }
-
-          event.preventDefault();
-          openTopicViewersModal(topicId);
-        });
+    document.addEventListener("click", (event) => {
+      const btn = event.target.closest(".topic-viewers-btn");
+      if (!btn) {
+        return;
       }
+
+      // Get topic ID from data attribute or tracked value
+      const topicId = btn.dataset.topicId
+        ? parseInt(btn.dataset.topicId, 10)
+        : currentTopicId;
+
+      if (!topicId) {
+        console.warn("No topic ID available");
+        return;
+      }
+
+      event.preventDefault();
+      openTopicViewersModal(topicId);
     });
   }
-};
+});
 
 // Load viewer list from backend
 function openTopicViewersModal(topicId) {
   fetch(`/topic-viewers/${topicId}.json`)
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
     .then((data) => {
       showTopicViewersOverlay(data.users || []);
     })
     .catch((e) => {
       console.error("Error loading topic viewers", e);
+      showTopicViewersOverlay([]);
     });
 }
 
