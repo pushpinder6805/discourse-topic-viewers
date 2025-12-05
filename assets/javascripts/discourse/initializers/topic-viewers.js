@@ -1,23 +1,23 @@
 import { apiInitializer } from "discourse/lib/api";
 
 export default apiInitializer("1.14.0", (api) => {
-
   let currentTopicId = null;
 
-  // Track current topic ID
+  // Track active topic ID
   api.onAppEvent("topic:current-changed", (topic) => {
     currentTopicId = topic?.id || null;
   });
 
-  // Attach a single global click handler
+  // Register ONE global click handler
   if (!window.__topicViewersClickRegistered) {
     window.__topicViewersClickRegistered = true;
 
     document.addEventListener("click", (event) => {
-      const button = event.target.closest(".topic-map__views-trigger");
-      if (!button) {
+      const btn = event.target.closest(".topic-viewers-btn");
+      if (!btn) {
         return;
       }
+
       if (!currentTopicId) {
         return;
       }
@@ -28,6 +28,7 @@ export default apiInitializer("1.14.0", (api) => {
   }
 });
 
+// Load viewer list from backend
 function openTopicViewersModal(topicId) {
   fetch(`/topic-viewers/${topicId}.json`)
     .then((response) => response.json())
@@ -35,14 +36,12 @@ function openTopicViewersModal(topicId) {
       showTopicViewersOverlay(data.users || []);
     })
     .catch((e) => {
-      // Silent fail in UI, or log to console
-      // eslint-disable-next-line no-console
       console.error("Error loading topic viewers", e);
     });
 }
 
+// UI Overlay
 function showTopicViewersOverlay(users) {
-  // Remove old overlay if any
   const old = document.querySelector(".tv-overlay");
   if (old) {
     old.remove();
@@ -102,7 +101,6 @@ function showTopicViewersOverlay(users) {
   overlay.appendChild(content);
   document.body.appendChild(overlay);
 
-  // Close handlers
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       overlay.remove();
@@ -126,3 +124,4 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+

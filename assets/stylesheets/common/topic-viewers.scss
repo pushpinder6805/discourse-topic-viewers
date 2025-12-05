@@ -7,6 +7,14 @@
   justify-content: center;
   z-index: 9999;
 }
+.topic-viewers-btn {
+  background: var(--primary-500);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 
 .tv-modal {
   background: var(--secondary, #fff);
