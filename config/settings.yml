@@ -1,0 +1,4 @@
+plugins:
+  topic_viewers_enabled:
+    default: true
+    client: true
