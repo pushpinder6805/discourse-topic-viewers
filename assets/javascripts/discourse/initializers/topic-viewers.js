@@ -1,32 +1,46 @@
-import { apiInitializer } from "discourse/lib/api";
+import { withPluginApi } from "discourse/lib/plugin-api";
 
-export default apiInitializer("1.14.0", (api) => {
-  let currentTopicId = null;
+export default {
+  name: "topic-viewers",
 
-  // Track active topic ID
-  api.onAppEvent("topic:current-changed", (topic) => {
-    currentTopicId = topic?.id || null;
-  });
+  initialize() {
+    withPluginApi("0.8.31", (api) => {
+      let currentTopicId = null;
 
-  // Register ONE global click handler
-  if (!window.__topicViewersClickRegistered) {
-    window.__topicViewersClickRegistered = true;
+      // Track topic changes using onPageChange
+      api.onPageChange((url, title) => {
+        // Extract topic ID from URL pattern /t/slug/id
+        const match = url.match(/\/t\/[^\/]+\/(\d+)/);
+        currentTopicId = match ? parseInt(match[1], 10) : null;
+      });
 
-    document.addEventListener("click", (event) => {
-      const btn = event.target.closest(".topic-viewers-btn");
-      if (!btn) {
-        return;
+      // Register global click handler
+      if (!window.__topicViewersClickRegistered) {
+        window.__topicViewersClickRegistered = true;
+
+        document.addEventListener("click", (event) => {
+          const btn = event.target.closest(".topic-viewers-btn");
+          if (!btn) {
+            return;
+          }
+
+          // Get topic ID from data attribute or tracked value
+          const topicId = btn.dataset.topicId
+            ? parseInt(btn.dataset.topicId, 10)
+            : currentTopicId;
+
+          if (!topicId) {
+            console.warn("No topic ID available");
+            return;
+          }
+
+          event.preventDefault();
+          openTopicViewersModal(topicId);
+        });
       }
-
-      if (!currentTopicId) {
-        return;
-      }
-
-      event.preventDefault();
-      openTopicViewersModal(currentTopicId);
     });
   }
-});
+};
 
 // Load viewer list from backend
 function openTopicViewersModal(topicId) {
