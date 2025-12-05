@@ -1,4 +1,4 @@
-plugins:
-  topic_viewers_enabled:
-    default: true
-    client: true
+topic_viewers_enabled:
+  default: true
+  type: bool
+  client: true
