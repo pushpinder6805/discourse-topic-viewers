@@ -54,11 +54,20 @@ after_initialize do
 
         users = query.limit(500).map do |topic_user|
           user = topic_user.user
+          
+          # FIX: Manually replace {size} in the template string
+          avatar_url = user.avatar_template.gsub("{size}", "45")
+          
+          # Ensure URL is absolute if it's not (optional, but good for safety)
+          if !avatar_url.start_with?("http") && !avatar_url.start_with?("/")
+             avatar_url = "/#{avatar_url}" 
+          end
+
           {
             id: user.id,
             username: user.username,
             name: user.name,
-            avatar_url: User.avatar_template_url(user.avatar_template, 45),
+            avatar_url: avatar_url,
             viewed_at: topic_user.last_visited_at
           }
         end
