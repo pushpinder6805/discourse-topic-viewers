@@ -1,9 +1,6 @@
 import { apiInitializer } from "discourse/lib/api";
 
 export default apiInitializer("1.14.0", (api) => {
-  if (!api.siteSettings.topic_viewers_enabled) {
-    return;
-  }
 
   let currentTopicId = null;
 
