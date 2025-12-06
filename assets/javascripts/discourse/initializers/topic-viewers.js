@@ -9,18 +9,6 @@ export default apiInitializer("0.11.0", (api) => {
     return;
   }
 
-  // -------------------------------------------------------------
-  // 🔥 REQUIRED FIX — Add missing postNumber source
-  // This makes the connector receive post.post_number correctly.
-  // -------------------------------------------------------------
-  api.modifyClass("component:topic-above-post-stream", {
-    pluginId: "discourse-topic-viewers",
-    get postNumber() {
-      return this.post?.post_number || 1;
-    },
-  });
-  // -------------------------------------------------------------
-
   function avatarUrlFor(user) {
     if (!user || !user.avatar_template) return "";
     return user.avatar_template.replace("{size}", "45");
