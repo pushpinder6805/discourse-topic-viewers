@@ -1,9 +1,9 @@
-{{#if @model}}
+{{#if @topic}}
   <button
     class="topic-viewers-btn"
     type="button"
-    data-topic-id="{{@model.id}}"
-    data-post-number="{{this.postNumber}}"
+    data-topic-id={{@topic.id}}
+    data-post-number={{@post.post_number}}
   >
     Viewers
   </button>
