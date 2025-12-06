@@ -1,4 +1,5 @@
-<button
+{{#if @topic}}
+  <button
     class="topic-viewers-btn"
     type="button"
     data-topic-id={{@topic.id}}
@@ -7,6 +8,8 @@
   >
     Viewers
   </button>
+{{/if}}
+
 
 
 
