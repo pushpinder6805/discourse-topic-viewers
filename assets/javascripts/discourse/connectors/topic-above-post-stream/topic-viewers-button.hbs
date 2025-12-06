@@ -1,8 +1,12 @@
-<button
+{{#if @outletArgs.topic}}
+  <button
     class="topic-viewers-btn"
     type="button"
-    data-topic-id={{@topic.id}}
-    data-post-number={{@post.post_number}}
+    data-topic-id={{@outletArgs.topic.id}}
+    {{#if @outletArgs.post}}
+      data-post-number={{@outletArgs.post.post_number}}
+    {{/if}}
   >
     Viewers
   </button>
+{{/if}}
