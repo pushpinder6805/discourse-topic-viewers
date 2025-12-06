@@ -1,29 +1,33 @@
 # frozen_string_literal: true
 
-class TopicViewersController < ApplicationController
-  requires_plugin :discourse_topic_viewers
+module DiscourseTopicViewers
+  class TopicViewersController < ::ApplicationController
+    requires_plugin "discourse-topic-viewers"
+    before_action :ensure_logged_in
 
-  def show
-    topic_id = params[:topic_id].to_i
+    def index
+      topic_id = params[:topic_id].to_i
 
-    # Fetch last viewers from TopicUser table
-    topic_users = TopicUser
-      .where(topic_id: topic_id)
-      .order("updated_at DESC")
-      .limit(50)
-      .includes(:user)
+      topic_users = TopicUser
+        .where(topic_id: topic_id)
+        .order(last_visited_at: :desc)
+        .limit(200)
+        .includes(:user)
 
-    users = topic_users.map do |tu|
-      u = tu.user
-      {
-        id: u.id,
-        username: u.username,
-        name: u.name,
-        avatar_template: u.avatar_template,
-        viewed_at: tu.updated_at
-      }
+      users = topic_users.map do |tu|
+        u = tu.user
+        next unless u
+
+        {
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          avatar_template: u.avatar_template,
+          viewed_at: tu.last_visited_at
+        }
+      end.compact
+
+      render json: { users: users }
     end
-
-    render json: { users: users }
   end
 end
