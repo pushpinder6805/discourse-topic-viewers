@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-
 # name: discourse-topic-viewers
 # about: Show list of users who viewed a specific post
 # version: 0.3
@@ -14,63 +13,43 @@ after_initialize do
     PLUGIN_NAME = "discourse-topic-viewers"
   end
 
+  require_dependency "application_controller"
+
   class ::DiscourseTopicViewers::Engine < ::Rails::Engine
-    engine_name DiscourseTopicViewers::PLUGIN_NAME
+    engine_name "discourse_topic_viewers"
     isolate_namespace DiscourseTopicViewers
+  end
+
+  DiscourseTopicViewers::Engine.routes.draw do
+    get "/topic_viewers/:topic_id/:post_number" => "topic_viewers#index"
   end
 
   Discourse::Application.routes.append do
     mount ::DiscourseTopicViewers::Engine, at: "/"
   end
 
-  ::DiscourseTopicViewers::Engine.routes.draw do
-    get "/topic-viewers/:topic_id" => "topic_viewers#index", defaults: { format: :json }
-  end
-
   module ::DiscourseTopicViewers
     class TopicViewersController < ::ApplicationController
-      requires_plugin DiscourseTopicViewers::PLUGIN_NAME
+      requires_plugin ::DiscourseTopicViewers::PLUGIN_NAME
       before_action :ensure_logged_in
 
       def index
-        topic_id = params[:topic_id].to_i
-        post_number = params[:post_number].to_i
-        
-        topic = Topic.find_by(id: topic_id)
-        raise Discourse::NotFound unless topic
-        guardian.ensure_can_see!(topic)
+        topic_id = params.require(:topic_id).to_i
+        # post_number param is provided for context, but we're returning viewers for the topic
+        # Cap result to a reasonable number
+        topic_users = TopicUser.where(topic_id: topic_id).order(last_visited_at: :desc).limit(200)
 
-        # Basic query: Users who visited this topic
-        query = TopicUser
-          .where(topic_id: topic_id)
-          .joins(:user)
-          .includes(:user)
-          .order("topic_users.last_visited_at DESC NULLS LAST")
-
-        # FILTER: Only show users who have read AT LEAST up to this post
-        if post_number > 0
-          query = query.where("topic_users.last_read_post_number >= ?", post_number)
-        end
-
-        users = query.limit(500).map do |topic_user|
-          user = topic_user.user
-          
-          # FIX: Manually replace {size} in the template string
-          avatar_url = user.avatar_template.gsub("{size}", "45")
-          
-          # Ensure URL is absolute if it's not (optional, but good for safety)
-          if !avatar_url.start_with?("http") && !avatar_url.start_with?("/")
-             avatar_url = "/#{avatar_url}" 
-          end
-
+        users = topic_users.includes(:user).map do |tu|
+          user = tu.user
+          next unless user
           {
             id: user.id,
             username: user.username,
             name: user.name,
-            avatar_url: avatar_url,
-            viewed_at: topic_user.last_visited_at
+            avatar_template: user.avatar_template,
+            viewed_at: tu.last_visited_at
           }
-        end
+        end.compact
 
         render_json_dump(users: users)
       end
