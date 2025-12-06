@@ -1,6 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
 import { ajax } from "discourse/lib/ajax";
-import Discourse from "discourse/lib/discourse";
 
 export default apiInitializer("0.11.0", (api) => {
   console.log("Topic Viewers initializer loaded");
@@ -10,8 +9,8 @@ export default apiInitializer("0.11.0", (api) => {
     return;
   }
 
-  // Base URL for Discourse backend
-  const baseUrl = Discourse.BaseUrl || "";
+  // Correct base URL for backend API
+  const baseUrl = siteSettings.base_url || "";
 
   function avatarUrlFor(user) {
     if (!user || !user.avatar_template) return "";
@@ -93,7 +92,6 @@ export default apiInitializer("0.11.0", (api) => {
     content.querySelector(".tv-close").onclick = () => overlay.remove();
   }
 
-  // Button click handler
   document.addEventListener("click", (event) => {
     const btn = event.target.closest(".topic-viewers-btn");
     if (!btn) return;
@@ -108,10 +106,8 @@ export default apiInitializer("0.11.0", (api) => {
       return;
     }
 
-    // Show loading overlay
     showTopicViewersOverlay([]);
 
-    // IMPORTANT: use baseUrl so request goes to Rails backend
     ajax(`${baseUrl}/topic_viewers/${topicId}/${postNumber}`, {
       type: "GET",
       dataType: "json",
