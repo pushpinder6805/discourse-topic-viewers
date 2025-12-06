@@ -9,6 +9,18 @@ export default apiInitializer("0.11.0", (api) => {
     return;
   }
 
+  // -------------------------------------------------------------
+  // 🔥 REQUIRED FIX — Add missing postNumber source
+  // This makes the connector receive post.post_number correctly.
+  // -------------------------------------------------------------
+  api.modifyClass("component:topic-above-post-stream", {
+    pluginId: "discourse-topic-viewers",
+    get postNumber() {
+      return this.post?.post_number || 1;
+    },
+  });
+  // -------------------------------------------------------------
+
   function avatarUrlFor(user) {
     if (!user || !user.avatar_template) return "";
     return user.avatar_template.replace("{size}", "45");
@@ -94,7 +106,7 @@ export default apiInitializer("0.11.0", (api) => {
     console.log("Topic Viewers button clicked");
 
     const topicId = btn.dataset.topicId;
-    const postNumber = btn.dataset.postNumber || 0;
+    const postNumber = btn.dataset.postNumber || 1;
 
     if (!topicId) {
       console.error("Missing topic ID");
