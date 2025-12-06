@@ -6,6 +6,8 @@
 
 enabled_site_setting :topic_viewers_enabled
 
+load File.expand_path("../config/routes.rb", __FILE__)
+
 register_asset "stylesheets/common/topic-viewers.scss"
 
 after_initialize do
